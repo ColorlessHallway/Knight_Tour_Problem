@@ -12,38 +12,13 @@ from collections import defaultdict
 
 
 class QLearningAgent:
-    """Q-Learning agent for Knight's Tour problem.
-    
-    State: (current_position, visited_cells_mask)
-    Action: Legal knight moves (neighbor positions)
-    
-    Attributes:
-        board (BoardGraph): The board graph representation
-        q_table (dict): Q-values for state-action pairs
-        learning_rate (float): Alpha - learning rate
-        discount_factor (float): Gamma - discount factor for future rewards
-        epsilon (float): Exploration rate for epsilon-greedy policy
-        epsilon_decay (float): Decay rate for epsilon
-        epsilon_min (float): Minimum epsilon value
-    """
-    
     def __init__(self, rows: int = 5, cols: int = 5, 
                  learning_rate: float = 0.1,
                  discount_factor: float = 0.95,
                  epsilon: float = 1.0,
                  epsilon_decay: float = 0.995,
                  epsilon_min: float = 0.01):
-        """Initialize the Q-Learning agent.
         
-        Args:
-            rows: Number of rows on the board
-            cols: Number of columns on the board
-            learning_rate: Alpha parameter for Q-learning
-            discount_factor: Gamma parameter for Q-learning
-            epsilon: Initial exploration rate
-            epsilon_decay: Decay rate for epsilon after each episode
-            epsilon_min: Minimum epsilon value
-        """
         self.board = BoardGraph(rows, cols)
         self.q_table: Dict[Tuple, float] = defaultdict(float)
         
@@ -239,7 +214,6 @@ class QLearningAgent:
         self.episode_rewards = []
         self.episode_lengths = []
         self.success_episodes = []
-        self.epsilon_history = []  # Track actual epsilon values
         
         start_time = time.time()
         
@@ -249,7 +223,6 @@ class QLearningAgent:
             self.episode_rewards.append(reward)
             self.episode_lengths.append(length)
             self.success_episodes.append(success)
-            self.epsilon_history.append(self.epsilon)  # Store current epsilon
             
             # Decay epsilon
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)

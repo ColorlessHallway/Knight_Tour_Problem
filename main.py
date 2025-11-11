@@ -210,18 +210,14 @@ def plot_learning_curves(agent: QLearningAgent):
         
         # Plot 3: Epsilon Decay (Exploration Rate)
         ax3 = plt.subplot(1, 3, 3)
-        # Use actual epsilon values from training history
-        if hasattr(agent, 'epsilon_history') and agent.epsilon_history:
-            epsilon_values = agent.epsilon_history
-        else:
-            # Fallback: reconstruct epsilon values
-            epsilon_values = []
-            epsilon = 1.0
-            epsilon_decay = agent.epsilon_decay
-            epsilon_min = agent.epsilon_min
-            for _ in range(len(agent.episode_rewards)):
-                epsilon_values.append(epsilon)
-                epsilon = max(epsilon_min, epsilon * epsilon_decay)
+        # Reconstruct epsilon values over episodes
+        epsilon_values = []
+        epsilon = 1.0
+        epsilon_decay = agent.epsilon_decay
+        epsilon_min = agent.epsilon_min
+        for _ in range(len(agent.episode_rewards)):
+            epsilon_values.append(epsilon)
+            epsilon = max(epsilon_min, epsilon * epsilon_decay)
         
         ax3.plot(range(len(epsilon_values)), epsilon_values, linewidth=2, color='orange', alpha=0.8)
         ax3.set_xlabel('Episode', fontsize=12)
@@ -237,8 +233,6 @@ def plot_learning_curves(agent: QLearningAgent):
         ax3.legend(loc='upper right')
         
         plt.tight_layout()
-        plt.savefig('learning_curves.png', dpi=150, bbox_inches='tight')
-        print("✓ Learning curves saved to 'learning_curves.png'")
         plt.show()
         
     except Exception as e:
@@ -262,18 +256,7 @@ def main():
     print(f"  RL Training Episodes: {num_episodes}")
     print("=" * 70)
     
-    # Run P1: Basic Backtracking
-    print("\n\n")
-    print("=" * 70)
-    print("RUNNING ALGORITHM 1: BASIC BACKTRACKING (P1)")
-    print("=" * 70)
     display_p1_results(rows=n, cols=n, start_pos=start_pos)
-    
-    # Run P2: Q-Learning RL Agent
-    print("\n\n")
-    print("=" * 70)
-    print("RUNNING ALGORITHM 2: Q-LEARNING REINFORCEMENT LEARNING (P2)")
-    print("=" * 70)
     display_p2_results(rows=n, cols=n, num_episodes=num_episodes, start_pos=start_pos)
 
 
