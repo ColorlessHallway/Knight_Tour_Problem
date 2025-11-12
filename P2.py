@@ -33,6 +33,7 @@ class QLearningAgent:
         self.episode_rewards: List[float] = []
         self.episode_lengths: List[int] = []
         self.success_episodes: List[bool] = []
+        self.q_value_changes: List[float] = []  # Track Q-value updates for convergence
         
     def _state_to_tuple(self, position: int, visited: List[bool]) -> Tuple:
         """Convert state to hashable tuple for Q-table.
@@ -114,7 +115,7 @@ class QLearningAgent:
             return random.choice(best_actions)
     
     def _update_q_value(self, state: Tuple, action: int, reward: float, 
-                       next_state: Tuple, valid_next_actions: List[int]) -> None:
+                       next_state: Tuple, valid_next_actions: List[int]) -> float:
         """Update Q-value using Q-learning update rule.
         
         Args:
@@ -123,6 +124,9 @@ class QLearningAgent:
             reward: Reward received
             next_state: Next state
             valid_next_actions: Valid actions from next state
+            
+        Returns:
+            Absolute change in Q-value (for convergence tracking)
         """
         current_q = self.q_table[(state, action)]
         
@@ -139,6 +143,9 @@ class QLearningAgent:
         )
         
         self.q_table[(state, action)] = new_q
+        
+        # Return absolute change for convergence tracking
+        return abs(new_q - current_q)
     
     def train_episode(self, start_pos: Optional[Tuple[int, int]] = None) -> Tuple[float, int, bool]:
         """Run one training episode.
@@ -161,6 +168,7 @@ class QLearningAgent:
         total_reward = 0.0
         steps = 0
         max_steps = self.board.size * self.board.size  # Prevent infinite loops
+        episode_q_changes = []  # Track Q-value changes in this episode
         
         # Run episode
         while steps < max_steps:
@@ -188,8 +196,9 @@ class QLearningAgent:
             next_state = self._state_to_tuple(action, visited)
             valid_next_actions = self._get_valid_actions(action, visited)
             
-            # Update Q-value
-            self._update_q_value(state, action, reward, next_state, valid_next_actions)
+            # Update Q-value and track change
+            q_change = self._update_q_value(state, action, reward, next_state, valid_next_actions)
+            episode_q_changes.append(q_change)
             
             # Move to next position
             position = action
@@ -198,8 +207,11 @@ class QLearningAgent:
             if tour_complete:
                 break
         
+        # Store average Q-value change for this episode (convergence metric)
+        avg_q_change = np.mean(episode_q_changes) if episode_q_changes else 0.0
+        
         success = all(visited)
-        return total_reward, steps, success
+        return total_reward, steps, success, avg_q_change
     
     def train(self, num_episodes: int = 1000, 
               start_pos: Optional[Tuple[int, int]] = None,
@@ -214,15 +226,17 @@ class QLearningAgent:
         self.episode_rewards = []
         self.episode_lengths = []
         self.success_episodes = []
+        self.q_value_changes = []  # Reset Q-value change tracking
         
         start_time = time.time()
         
         for episode in range(num_episodes):
-            reward, length, success = self.train_episode(start_pos)
+            reward, length, success, avg_q_change = self.train_episode(start_pos)
             
             self.episode_rewards.append(reward)
             self.episode_lengths.append(length)
             self.success_episodes.append(success)
+            self.q_value_changes.append(avg_q_change)
             
             # Decay epsilon
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
@@ -298,6 +312,26 @@ class QLearningAgent:
         
         return list(range(len(smoothed))), smoothed
     
+    def get_convergence_curve(self, window: int = 100) -> Tuple[List[float], List[float]]:
+        """Get Q-value change curve (convergence metric).
+        
+        Args:
+            window: Window size for moving average
+            
+        Returns:
+            Tuple of (episode_numbers, smoothed_q_changes)
+        """
+        if len(self.q_value_changes) < window:
+            window = max(1, len(self.q_value_changes))
+        
+        smoothed = []
+        for i in range(len(self.q_value_changes)):
+            start_idx = max(0, i - window + 1)
+            window_changes = self.q_value_changes[start_idx:i + 1]
+            smoothed.append(np.mean(window_changes))
+        
+        return list(range(len(smoothed))), smoothed
+    
     def get_success_rate_curve(self, window: int = 100) -> Tuple[List[float], List[float]]:
         """Get success rate over training.
         
@@ -354,16 +388,10 @@ class QLearningAgent:
         
         metrics = {
             'total_episodes': total_episodes,
-            'total_successes': total_successes,
-            'overall_success_rate': total_successes / total_episodes if total_episodes > 0 else 0,
             'final_epsilon': self.epsilon,
             'q_table_size': len(self.q_table),
             'board_size': self.board.size,
             'board_dimensions': f"{self.board.rows}x{self.board.cols}"
         }
-        
-        if total_episodes >= 100:
-            metrics['last_100_success_rate'] = sum(self.success_episodes[-100:]) / 100
-            metrics['last_100_avg_reward'] = np.mean(self.episode_rewards[-100:])
         
         return metrics

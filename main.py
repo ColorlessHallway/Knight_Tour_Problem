@@ -124,13 +124,6 @@ def display_p2_results(rows: int = 5, cols: int = 5,
     
     print("\nTRAINING METRICS:")
     print(f"  Total Episodes:         {metrics['total_episodes']:,}")
-    print(f"  Successful Episodes:    {metrics['total_successes']:,}")
-    print(f"  Overall Success Rate:   {metrics['overall_success_rate']:.2%}")
-    
-    if 'last_100_success_rate' in metrics:
-        print(f"  Last 100 Success Rate:  {metrics['last_100_success_rate']:.2%}")
-        print(f"  Last 100 Avg Reward:    {metrics['last_100_avg_reward']:.2f}")
-    
     print(f"  Final Epsilon:          {metrics['final_epsilon']:.4f}")
     print(f"  Q-Table Size:           {metrics['q_table_size']:,} entries")
     
@@ -190,23 +183,23 @@ def plot_learning_curves(agent: QLearningAgent):
         ax1.grid(True, alpha=0.3)
         ax1.set_xlim(left=0)
         
-        # Plot 2: Success Rate vs Episodes
+        # Plot 2: Convergence Behavior (Q-value changes)
         ax2 = plt.subplot(1, 3, 2)
-        episodes, success_rates = agent.get_success_rate_curve(window=100)
-        ax2.plot(episodes, success_rates, linewidth=2, color='green', alpha=0.8)
+        episodes, q_changes = agent.get_convergence_curve(window=100)
+        ax2.plot(episodes, q_changes, linewidth=2, color='purple', alpha=0.8)
         ax2.set_xlabel('Episode', fontsize=12)
-        ax2.set_ylabel('Success Rate', fontsize=12)
-        ax2.set_title('Convergence Behavior\n(100-episode moving average)', fontsize=13, fontweight='bold')
-        ax2.set_ylim([0, 1.05])
+        ax2.set_ylabel('Avg Q-value Change', fontsize=12)
+        ax2.set_title('Convergence Behavior\n(Q-value Stability)', fontsize=13, fontweight='bold')
         ax2.set_xlim(left=0)
+        ax2.set_ylim(bottom=0)
         ax2.grid(True, alpha=0.3)
         
-        # Add horizontal line at 100% success
-        ax2.axhline(y=1.0, color='red', linestyle='--', alpha=0.5, linewidth=1.5, label='Perfect Success')
-        ax2.legend(loc='lower right')
-        
-        # Add percentage formatting to y-axis
-        ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y:.0%}'))
+        # Add annotation
+        ax2.text(0.98, 0.98, 'Lower = More Stable', 
+                transform=ax2.transAxes, 
+                ha='right', va='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5),
+                fontsize=9)
         
         # Plot 3: Epsilon Decay (Exploration Rate)
         ax3 = plt.subplot(1, 3, 3)
